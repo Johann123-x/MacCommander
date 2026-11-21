@@ -38,7 +38,7 @@ final class Commander {
         history = d.stringArray(forKey: "history") ?? []
         histIdx = history.count
         view.commander = self
-        console = ["", "MacCommander – a Norton Commander style file manager for macOS",
+        console = ["", "MacCommander – a dual-panel file manager for macOS, inspired by Norton Commander",
                    "F1 = Help   F9 = Menu   Cmd-1 … Cmd-0 work as F1 … F10", ""]
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self else { return }
@@ -867,7 +867,8 @@ final class Commander {
 }
 
 let helpText: [String] = [
-    "MacCommander – Norton-Commander-Klon für macOS",
+    "MacCommander – Zwei-Panel-Dateimanager für macOS",
+    " Inspiriert vom Norton Commander; nicht mit Gen Digital/Norton verbunden.",
     "",
     "Funktionstasten:",
     " Auf Mac-Tastaturen mit fn drücken – oder Cmd-1 … Cmd-0.",

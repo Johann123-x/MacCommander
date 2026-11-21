@@ -1,6 +1,8 @@
 # MacCommander
 
-Ein Norton-Commander-Klon (NC 3/4/5-Look) als native macOS-App (Swift/AppKit, keine Abhängigkeiten).
+Ein Zwei-Panel-Dateimanager für macOS, inspiriert vom Norton Commander (NC 3/4/5-Look), als native App (Swift/AppKit, keine Abhängigkeiten).
+
+> MacCommander ist ein unabhängiges Projekt und nicht mit Gen Digital Inc. (Norton) verbunden. „Norton Commander“ ist eine Marke ihrer jeweiligen Inhaber.
 
 ## Bauen & Starten
 
