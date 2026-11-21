@@ -2,11 +2,16 @@
 # Builds MacCommander.app into ./build
 set -e
 cd "$(dirname "$0")"
-swift build -c release --build-system native
+# Universal binary: build each architecture separately, then merge with lipo
+for ARCH in arm64 x86_64; do
+  swift build -c release --build-system native --triple "$ARCH-apple-macosx13.0"
+done
 APP=build/MacCommander.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp .build/release/MacCommander "$APP/Contents/MacOS/MacCommander"
+lipo -create -output "$APP/Contents/MacOS/MacCommander" \
+  .build/arm64-apple-macosx/release/MacCommander \
+  .build/x86_64-apple-macosx/release/MacCommander
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

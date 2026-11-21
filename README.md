@@ -4,6 +4,18 @@ Ein Zwei-Panel-Dateimanager für macOS, inspiriert vom Norton Commander (NC 3/4/
 
 > MacCommander ist ein unabhängiges Projekt und nicht mit Gen Digital Inc. (Norton) verbunden. „Norton Commander“ ist eine Marke ihrer jeweiligen Inhaber.
 
+## Download
+
+Die fertige App gibt es unter [Releases](https://github.com/Johann123-x/MacCommander/releases): `MacCommander-v1.0-macOS.zip` herunterladen, entpacken und `MacCommander.app` nach `/Applications` ziehen. Läuft ab macOS 13 auf Apple-Silicon- und Intel-Macs (Universal).
+
+**Erster Start:** Die App ist nicht von Apple notarisiert, daher meldet macOS beim ersten Öffnen, dass sie nicht geprüft werden kann. So startest du sie trotzdem:
+
+- Rechtsklick auf `MacCommander.app` → **Öffnen** → **Öffnen**, oder
+- **Systemeinstellungen → Datenschutz & Sicherheit** → unten bei MacCommander auf **Trotzdem öffnen** klicken, oder
+- im Terminal: `xattr -dr com.apple.quarantine /Applications/MacCommander.app`
+
+Das ist nur einmal nötig.
+
 ## Bauen & Starten
 
 ```bash

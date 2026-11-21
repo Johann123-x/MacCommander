@@ -3,3 +3,13 @@
 build/
 *.xcodeproj/xcuserdata/
 .swiftpm/
+dist/
+
+# local backups
+*.bak
+
+# never commit SSH keys
+git.md
+git.md.pub
+id_*
+*.pem
