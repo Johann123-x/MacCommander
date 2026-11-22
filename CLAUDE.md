@@ -27,6 +27,6 @@ Norton-Commander-style two-panel file manager for macOS. Swift Package, AppKit o
 
 - Match the existing idiomatic Swift style: short names, no Hungarian notation, no licence headers, `// MARK: -` section markers. The com.helger Java rules do not apply here.
 - Comments explain Swift idioms for a reader who knows Java but not Swift (optionals, `guard`, closures, value-type structs, `[weak self]`). Keep that style when adding code.
-- All new text is in English: dialogs, help text and README. The German F1 help text (`helpText` in `Commander.swift`) and the German README predate this rule.
-- A key binding is documented in three places: the README "Funktionen" list, `helpText`, and the key bar labels (`baseLabels()`, `drawKeybar`). Change all three together.
+- All text is in British English: dialogs, help text and README.
+- A key binding is documented in three places: the README "Features" list, `helpText`, and the key bar labels (`baseLabels()`, `drawKeybar`). Change all three together.
 - This is an independently maintained fork of `Johann123-x/MacCommander`: commit to `master` of `phax/MacCommander`; no upstream PRs, no changelog.

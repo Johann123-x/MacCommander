@@ -1,48 +1,48 @@
 # MacCommander
 
-Ein Zwei-Panel-Dateimanager für macOS, inspiriert vom Norton Commander (NC 3/4/5-Look), als native App (Swift/AppKit, keine Abhängigkeiten).
+A two-panel file manager for macOS, inspired by Norton Commander (NC 3/4/5 look), as a native app (Swift/AppKit, no dependencies).
 
-> MacCommander ist ein unabhängiges Projekt und nicht mit Gen Digital Inc. (Norton) verbunden. „Norton Commander“ ist eine Marke ihrer jeweiligen Inhaber.
+> MacCommander is an independent project and is not affiliated with Gen Digital Inc. (Norton). "Norton Commander" is a trademark of its respective owners.
 
 ## Download
 
-Die fertige App gibt es unter [Releases](https://github.com/Johann123-x/MacCommander/releases): `MacCommander-v1.0-macOS.zip` herunterladen, entpacken und `MacCommander.app` nach `/Applications` ziehen. Läuft ab macOS 13 auf Apple-Silicon- und Intel-Macs (Universal).
+The ready-made app is available under [Releases](https://github.com/Johann123-x/MacCommander/releases): download `MacCommander-v1.0-macOS.zip`, unpack it and drag `MacCommander.app` to `/Applications`. Runs on macOS 13 and later on Apple silicon and Intel Macs (universal).
 
-**Erster Start:** Die App ist nicht von Apple notarisiert, daher meldet macOS beim ersten Öffnen, dass sie nicht geprüft werden kann. So startest du sie trotzdem:
+**First launch:** the app is not notarised by Apple, so macOS reports on first launch that it cannot be checked. To start it anyway:
 
-- Rechtsklick auf `MacCommander.app` → **Öffnen** → **Öffnen**, oder
-- **Systemeinstellungen → Datenschutz & Sicherheit** → unten bei MacCommander auf **Trotzdem öffnen** klicken, oder
-- im Terminal: `xattr -dr com.apple.quarantine /Applications/MacCommander.app`
+- right-click `MacCommander.app` → **Open** → **Open**, or
+- **System Settings → Privacy & Security** → click **Open Anyway** next to MacCommander at the bottom, or
+- in Terminal: `xattr -dr com.apple.quarantine /Applications/MacCommander.app`
 
-Das ist nur einmal nötig.
+This is only needed once.
 
-## Bauen & Starten
+## Building and running
 
 ```bash
 ./build.sh
 open build/MacCommander.app
 ```
 
-Zum Installieren `build/MacCommander.app` nach `/Applications` ziehen.
+To install, drag `build/MacCommander.app` to `/Applications`.
 
-## Funktionen
+## Features
 
-- Zwei blaue Panels mit Doppelrahmen, Voll-/Kurzanzeige, Sortierung, Uhr, freier Speicher
-- F1 Hilfe · F2 Benutzermenü · F3 Viewer (Text/Hex, Markdown formatiert) · F4 Editor · F5 Kopieren · F6 Umbenennen/Verschieben
-  · F7 Verzeichnis · F8 Löschen (Papierkorb) · F9 Pulldown-Menü · F10 Beenden
-- Alt-F1/F2 Orte & Volumes, Alt-F7 Datei suchen, Alt-F8 Historie, Ctrl-S Schnellsuche
-- Kommandozeile (zsh) mit Ausgabe hinter den Panels (Ctrl-O), `cd` steuert das Panel
-- Markieren mit Leertaste/Insert/Shift-Pfeilen, `+` `-` `*` für Gruppen
-- Maus: Klick, Doppelklick, Rechtsklick markiert, Klick auf die Tastenleiste
-- Cmd-1 … Cmd-0 ersetzen F1 … F10 (Mac-Tastaturen), Cmd-+/- Schriftgröße
+- Two blue panels with double frames, full/brief view, sorting, clock, free space
+- F1 Help · F2 User menu · F3 Viewer (text/hex, formatted Markdown) · F4 Editor · F5 Copy · F6 Rename/move
+  · F7 Make directory · F8 Delete (Trash) · F9 Pull-down menu · F10 Quit
+- Alt-F1/F2 locations and volumes, Alt-F7 find file, Alt-F8 history, Ctrl-S quick search
+- Command line (zsh) with output behind the panels (Ctrl-O); `cd` controls the panel
+- Select with Space/Insert/Shift-arrows, `+` `-` `*` for groups
+- Mouse: click, double-click, right-click selects, click on the key bar
+- Cmd-1 … Cmd-0 replace F1 … F10 (Mac keyboards), Cmd-+/- font size
 
-Alle Löschvorgänge (auch beim Überschreiben) gehen in den Papierkorb.
+All deletions (including overwriting) go to the Trash.
 
 ### Markdown
 
-Bei `.md`-Dateien schaltet **F3** im Viewer und im Editor zwischen Rohtext und formatierter Ansicht um (Überschriften, fett/kursiv, Code, Listen, Zitate, Tabellen, Codeblöcke). Der Viewer startet formatiert, der Editor im Rohtext; die formatierte Ansicht im Editor ist nur zum Lesen.
+For `.md` files, **F3** in the viewer and in the editor switches between raw text and the formatted view (headings, bold/italic, code, lists, quotes, tables, code blocks). The viewer starts formatted, the editor in raw text; the formatted view in the editor is read-only.
 
-### Panel-Optionen (F9 → Left/Right)
+### Panel options (F9 → Left/Right)
 
-- **Hidden files**: versteckte Dateien nur für dieses Panel ein/aus (Ctrl-H = aktives Panel)
-- **Permissions**: zusätzliche Spalte „Attr“ mit Unix-Rechten (z. B. `drwxr-xr-x`), nur in der Vollanzeige
+- **Hidden files**: show or hide hidden files for this panel only (Ctrl-H = active panel)
+- **Permissions**: an extra "Attr" column with the Unix permissions (e.g. `drwxr-xr-x`), in the full view only

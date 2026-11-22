@@ -52,6 +52,11 @@ struct MarkdownInlineTests {
         #expect(text(mdInline("a <b> c")) == "a <b> c")
     }
 
+    @Test func imagesShowAPlaceholder() {
+        #expect(text(mdInline("![logo](img/logo.png)")) == "[Image: logo]")
+        #expect(text(mdInline("![](img/logo.png)")) == "[Image: –]")
+    }
+
     @Test(arguments: ["a.md", "A.MD", "notes.markdown", "x.mkd"])
     func markdownExtensions(path: String) {
         #expect(isMarkdownPath(path))

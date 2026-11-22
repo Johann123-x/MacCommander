@@ -116,7 +116,7 @@ func mdInline(_ s: String, base: UInt8 = MD.text) -> [Cell] {
                close + 1 < c.count, c[close + 1] == "(", let paren = find([")"], from: close + 2) {
                 let label = String(c[(open + 1)..<close])
                 if isImg {
-                    out += cells("[Bild: " + (label.isEmpty ? "–" : label) + "]", Col.cyan)
+                    out += cells("[Image: " + (label.isEmpty ? "–" : label) + "]", Col.cyan)
                 } else {
                     // Labels may contain inline formatting themselves (recursive call); plain text is recoloured to the link colour.
                     // `var x = $0` makes a mutable copy of the Cell struct inside the closure, which is then returned.
