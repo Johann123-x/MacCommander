@@ -944,7 +944,7 @@ final class Commander {
                     self.pop(prog)
                     if results.isEmpty { self.info("Find File", ["No files found."]); return }
                     // Show the paths relative to the search root.
-                    let rel = results.map { $0.hasPrefix(root + "/") ? String($0.dropFirst(root == "/" ? 1 : root.count + 1)) : $0 }
+                    let rel = results.map { relativePath($0, under: root) }
                     self.push(ListPopup(self, title: "\(results.count) found", items: rel) { [unowned self] i in
                         let p = results[i]
                         self.panelsOn = true

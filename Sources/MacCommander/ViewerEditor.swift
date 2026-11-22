@@ -175,6 +175,9 @@ final class Viewer: Layer {
         case .home: top = 0; left = 0
         // `total` overshoots on purpose; the clamp at the end turns it into the last page.
         case .end: top = total
+        // Formatted Markdown is wrapped to the window width, so there is nothing to scroll sideways. This case must
+        // come before the plain `.left`/`.right` cases, because the first matching case wins.
+        case .left where showMD, .right where showMD: break
         case .left: left = max(0, left - 8)
         case .right: left += 8
         case .f(4):
@@ -184,7 +187,6 @@ final class Viewer: Layer {
             top = 0
         // `where` adds a condition to a case: F3 toggles formatting only for Markdown files, otherwise it falls to the quit case below.
         case .f(3) where isMD: toggleFormatted()
-        case .left where showMD, .right where showMD: break
         case .f(1): cmd.showHelp()
         case .esc, .f(3), .f(10), .char("q"): cmd.pop(self)
         default: break

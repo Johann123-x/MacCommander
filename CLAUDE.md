@@ -7,7 +7,7 @@ Norton-Commander-style two-panel file manager for macOS. Swift Package, AppKit o
 ## Build and verify
 
 - Compile check: `swift build` (debug, host architecture only, a few seconds).
-- Tests: `swift test` (Swift Testing: `@Test`, `#expect`; needs the Xcode toolchain). One test: `swift test --filter PanelTests`. The tests use `@testable import MacCommander` on the executable target and cover the code that runs without a window: `Screen` and the text helpers, `Panel` (against a temporary directory), Markdown rendering, `LineEdit` and `KeyEvent.from`. `Commander`, the layers and the viewer/editor need a live view and are not covered.
+- Tests: `swift test` (Swift Testing: `@Test`, `#expect`; needs the Xcode toolchain). One test: `swift test --filter PanelTests`. The tests use `@testable import MacCommander` on the executable target and cover the code that runs without a window: `Screen` and the text helpers, `Panel` (against a temporary directory), Markdown rendering, `LineEdit` and `KeyEvent.from`. Layers can be tested by building `Commander(view: TerminalView(fontSize: 16))` off-screen in a `@MainActor` test (see `ViewerTests`); no window is needed.
 - `#expect` cannot call a `mutating` method directly; store the result in a `let` first.
 - Lint: `swiftlint` from the repo root (Homebrew; config `.swiftlint.yml`). The current code lints clean; keep it at 0 violations. Rules that clash with the existing style are disabled there on purpose, so do not re-enable them or "fix" the code for them.
 - Release app: `./build.sh` builds arm64 and x86_64 separately (`--build-system native --triple ...`), merges them with `lipo` and writes `build/MacCommander.app` with an ad-hoc signature. It is slow; use it only when the `.app` itself is needed.

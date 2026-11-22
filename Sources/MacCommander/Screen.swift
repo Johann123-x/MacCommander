@@ -185,6 +185,14 @@ func wrap(_ text: String, _ width: Int) -> [String] {
     return out
 }
 
+/// Returns `p` relative to the directory `root` ("/a/b/c" under "/a" is "b/c"), or `p` unchanged when it lies
+/// outside `root`. Used to list Find File results.
+func relativePath(_ p: String, under root: String) -> String {
+    // The root directory "/" already ends in a slash; appending another would give "//", which never matches.
+    let prefix = root.hasSuffix("/") ? root : root + "/"
+    return p.hasPrefix(prefix) ? String(p.dropFirst(prefix.count)) : p
+}
+
 /// Abbreviates the home folder as "~" for display.
 func displayPath(_ p: String) -> String {
     // Normalises to precomposed Unicode (NFC): paths may contain decomposed umlauts, which would not compare

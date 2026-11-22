@@ -107,6 +107,14 @@ struct TextHelperTests {
         #expect(displayPath(home + "X") == home + "X")
     }
 
+    @Test func relativePathStripsTheSearchRoot() {
+        #expect(relativePath("/a/b/c", under: "/a") == "b/c")
+        #expect(relativePath("/ab/c", under: "/a") == "/ab/c")
+        #expect(relativePath("/x/y", under: "/a") == "/x/y")
+        // Regression: searching from "/" used to show the full path because the prefix became "//".
+        #expect(relativePath("/usr/bin/zsh", under: "/") == "usr/bin/zsh")
+    }
+
     @Test func shortPathDropsMiddleFolders() {
         #expect(shortPath("/a/b", 10) == "/a/b")
         #expect(shortPath("~/Documents/project/scratchpad/sz", 25) == "~/…/project/scratchpad/sz")
