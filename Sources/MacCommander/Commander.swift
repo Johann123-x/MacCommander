@@ -353,6 +353,8 @@ final class Commander {
         }
         guard panelsOn else { return }
         let p = x < screen.cols / 2 ? left : right
+        // A hidden panel's half of the screen shows the console; scrolling there must not move its cursor.
+        guard p.visible else { return }
         p.move(delta)
         render()
     }
