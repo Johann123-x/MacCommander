@@ -4,6 +4,7 @@
 
 included:
   - Sources
+  - Tests
 
 disabled_rules:
   # Short names (p, e, s, cw, MD) are used throughout
