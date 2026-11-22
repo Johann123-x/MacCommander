@@ -1,0 +1,31 @@
+# SwiftLint configuration (https://github.com/realm/SwiftLint)
+# Run from the repository root: swiftlint
+# The disabled rules conflict with the deliberate style of the existing code.
+
+included:
+  - Sources
+
+disabled_rules:
+  # Short names (p, e, s, cw, MD) are used throughout
+  - identifier_name
+  - type_name
+  # "} \n else" placement and trailing commas in literals are the house style
+  - statement_position
+  - trailing_comma
+  # Redundant parentheses and explicit "= nil" occur in existing code
+  - control_statement
+  - implicit_optional_initialization
+  # String(decoding:as:) is used on purpose: it never fails and replaces invalid UTF-8
+  - optional_data_string_conversion
+  - large_tuple
+  # Size and complexity metrics: Commander and the key handlers are large by design
+  - cyclomatic_complexity
+  - function_body_length
+  - function_parameter_count
+  - type_body_length
+  - file_length
+
+line_length:
+  warning: 210
+  error: 250
+  ignores_comments: true
