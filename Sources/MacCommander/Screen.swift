@@ -287,3 +287,23 @@ func sameFile(_ a: URL, _ b: URL) -> Bool {
     // `isEqual` is the Objective-C equality method (like Java `equals`); the identifiers are opaque objects.
     return ia.isEqual(ib)
 }
+
+/// True when both files contain the same bytes. Reads them in 1 MiB chunks; a file that cannot be read
+/// counts as different. Symbolic links are followed.
+func filesEqual(_ a: URL, _ b: URL) -> Bool {
+    let chunk = 1 << 20
+    do {
+        let ha = try FileHandle(forReadingFrom: a)
+        let hb = try FileHandle(forReadingFrom: b)
+        // `defer` runs when the scope is left, however that happens (≈ a `finally` block).
+        defer { try? ha.close(); try? hb.close() }
+        while true {
+            let da = try ha.read(upToCount: chunk) ?? Data()
+            let db = try hb.read(upToCount: chunk) ?? Data()
+            if da != db { return false }
+            if da.isEmpty { return true }
+        }
+    } catch {
+        return false
+    }
+}

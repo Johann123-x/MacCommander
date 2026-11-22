@@ -755,15 +755,67 @@ final class Commander {
         })
     }
 
-    /// Selects in each panel the files that are missing or older on the other side (directories ignored).
-    private func compareDirs() {
+    // `static func` ≈ a Java static method. The tuple return type `(left:, right:)` returns two values at once.
+    /// Compares the files (not directories) of two panels and returns the names to select on each side.
+    /// Files present on one side only are always selected. Files present on both sides are selected
+    /// - by date: on the side where the file is newer;
+    /// - by content: on both sides when the sizes or the bytes differ.
+    /// `cancelled` is polled between files, so a long content comparison can be stopped.
+    static func differences(_ l: [FileEntry], _ r: [FileEntry], byContent: Bool,
+                            cancelled: () -> Bool = { false }) -> (left: Set<String>, right: Set<String>) {
         // Builds a name -> entry dictionary; duplicate names keep the first entry.
-        let ln = Dictionary(left.entries.filter { !$0.isDir }.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
-        let rn = Dictionary(right.entries.filter { !$0.isDir }.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
-        // `rn[e.name]` is an optional; `.map` compares only if present, `?? true` selects names missing on the right.
-        left.selected = Set(ln.values.filter { e in rn[e.name].map { $0.date < e.date } ?? true }.map { $0.name })
-        right.selected = Set(rn.values.filter { e in ln[e.name].map { $0.date < e.date } ?? true }.map { $0.name })
-        if left.selected.isEmpty && right.selected.isEmpty { info("Compare", ["The directories are identical."]) }
+        let ln = Dictionary(l.filter { !$0.isDir }.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+        let rn = Dictionary(r.filter { !$0.isDir }.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+        var ls = Set(ln.keys.filter { rn[$0] == nil })
+        var rs = Set(rn.keys.filter { ln[$0] == nil })
+        for (name, a) in ln {
+            guard let b = rn[name] else { continue }
+            if cancelled() { break }
+            if byContent {
+                if a.size != b.size || !filesEqual(a.url, b.url) { ls.insert(name); rs.insert(name) }
+            } else if a.date > b.date {
+                ls.insert(name)
+            } else if b.date > a.date {
+                rs.insert(name)
+            }
+        }
+        return (ls, rs)
+    }
+
+    /// Selects the result of a comparison in both panels, or reports that there are no differences.
+    private func applyComparison(_ d: (left: Set<String>, right: Set<String>)) {
+        left.selected = d.left
+        right.selected = d.right
+        if d.left.isEmpty && d.right.isEmpty { info("Compare", ["The directories are identical."]) }
+    }
+
+    /// Compares the file contents in the background; Esc cancels. The result is dropped if either panel
+    /// changed directory in the meantime.
+    private func compareContents() {
+        let prog = ProgressBox(self, title: "Compare")
+        prog.message = "Comparing file contents…"
+        push(prog)
+        let l = left.entries, r = right.entries, lp = left.path, rp = right.path
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let d = Commander.differences(l, r, byContent: true) { prog.cancelled }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.pop(prog)
+                guard !prog.cancelled, self.left.path == lp, self.right.path == rp else { return }
+                self.applyComparison(d)
+            }
+        }
+    }
+
+    /// Asks whether to compare the two panels by date or by content and selects the differing files.
+    private func compareDirs() {
+        push(Dialog(self, title: "Compare", lines: ["Compare the files by:"], buttons: ["Date", "Content", "Cancel"]) { [unowned self] b, _ in
+            if b == 0 {
+                self.applyComparison(Commander.differences(self.left.entries, self.right.entries, byContent: false))
+            } else if b == 1 {
+                self.compareContents()
+            }
+        })
     }
 
     // MARK: - Popups and menus
