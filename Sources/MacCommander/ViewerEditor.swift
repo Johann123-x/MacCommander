@@ -9,6 +9,20 @@ private func sanitize(_ c: Character) -> Character {
     return c
 }
 
+/// The text encoding announced by a byte-order mark at the start of `d`, and the mark's length in bytes;
+/// nil without a mark. UTF-32 is checked before UTF-16 because the UTF-32 LE mark begins with the UTF-16 LE mark.
+func bomEncoding(_ d: Data) -> (encoding: String.Encoding, length: Int)? {
+    let marks: [([UInt8], String.Encoding)] = [
+        ([0xEF, 0xBB, 0xBF], .utf8),
+        ([0xFF, 0xFE, 0x00, 0x00], .utf32LittleEndian),
+        ([0x00, 0x00, 0xFE, 0xFF], .utf32BigEndian),
+        ([0xFF, 0xFE], .utf16LittleEndian),
+        ([0xFE, 0xFF], .utf16BigEndian),
+    ]
+    // `first { ... }` returns the first matching element as an optional; `.map` turns it into the result tuple.
+    return marks.first { d.starts(with: $0.0) }.map { ($0.1, $0.0.count) }
+}
+
 // MARK: - Internal viewer (F3)
 
 // `final class Viewer: Layer` = a non-subclassable class implementing an interface (protocol).
@@ -56,8 +70,9 @@ final class Viewer: Layer {
         // `prefix(limit)` is a view of the first bytes, still backed by the mapping.
         data = d.count > limit ? d.prefix(limit) : d
         fileSize = d.count
-        // Heuristic: a NUL byte in the first 8 KiB means binary, so start in hex mode.
-        hex = data.prefix(8192).contains(0)
+        // Heuristic: a NUL byte in the first 8 KiB means binary, so start in hex mode. A byte-order mark announces
+        // text, which for UTF-16/32 naturally contains NUL bytes.
+        hex = bomEncoding(data) == nil && data.prefix(8192).contains(0)
         if !hex { buildText() }
     }
 
@@ -65,7 +80,9 @@ final class Viewer: Layer {
     private func buildText() {
         // `String(data:encoding:)` is a failable initialiser: it returns nil (rather than throwing) if decoding fails.
         // The `??` chain tries each in turn; the final `String(decoding:as:)` never fails and replaces bad bytes with U+FFFD.
-        let s = String(data: data, encoding: .utf8)
+        // `flatMap` on an optional: decode with the byte-order mark's encoding if there is one, else nil.
+        let s = bomEncoding(data).flatMap { String(data: data.dropFirst($0.length), encoding: $0.encoding) }
+            ?? String(data: data, encoding: .utf8)
             ?? String(data: data, encoding: .windowsCP1252)
             ?? String(decoding: data, as: UTF8.self)
         // Trailing closure: `map { ... }` with `$0` as the implicit parameter (≈ `.stream().map(l -> ...)`).

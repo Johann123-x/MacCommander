@@ -55,6 +55,30 @@ final class ViewerTests {
         #expect(titleRow(v).contains("67.108.864 of 68.157.440 bytes"))
     }
 
+    @Test(arguments: [
+        (String.Encoding.utf8, [UInt8]([0xEF, 0xBB, 0xBF])),
+        (.utf16LittleEndian, [0xFF, 0xFE]),
+        (.utf16BigEndian, [0xFE, 0xFF]),
+        (.utf32LittleEndian, [0xFF, 0xFE, 0x00, 0x00]),
+        (.utf32BigEndian, [0x00, 0x00, 0xFE, 0xFF]),
+    ])
+    func textWithAByteOrderMarkOpensAsText(encoding: String.Encoding, bom: [UInt8]) throws {
+        let f = file + ".txt"
+        defer { try? FileManager.default.removeItem(atPath: f) }
+        let body = try #require("Grüße\nzweite Zeile".data(using: encoding))
+        try (Data(bom) + body).write(to: URL(fileURLWithPath: f))
+        let v = Viewer(cmd, path: f)
+        #expect(!v.hex)
+        #expect(v.lines == ["Grüße", "zweite Zeile"])
+    }
+
+    @Test func nulBytesWithoutAByteOrderMarkStillMeanBinary() throws {
+        let f = file + ".bin"
+        defer { try? FileManager.default.removeItem(atPath: f) }
+        try Data([0x41, 0x00, 0x42]).write(to: URL(fileURLWithPath: f))
+        #expect(Viewer(cmd, path: f).hex)
+    }
+
     @Test func rawTextScrollsSideways() {
         let v = Viewer(cmd, path: file)
         // F3 switches a Markdown file between formatted and raw view.
