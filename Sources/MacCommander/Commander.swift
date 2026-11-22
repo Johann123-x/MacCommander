@@ -431,9 +431,10 @@ final class Commander {
 
     // MARK: - Command line execution
 
+    // Internal instead of private only so that the tests can call it.
     /// Runs a command line: `cd`, `exit`, `cls`/`clear` are handled internally, everything else runs
     /// asynchronously in `zsh -l -c` with output streamed into the console.
-    private func execute(_ line: String) {
+    func execute(_ line: String) {
         if history.last != line { history.append(line) }
         histIdx = history.count
         cmd = LineEdit()
@@ -471,28 +472,39 @@ final class Commander {
         proc.standardError = pipe
         // stdin is closed, so interactive programs see end-of-input instead of hanging.
         proc.standardInput = FileHandle.nullDevice
+        // The command is complete when the process has exited AND all its output has been read. A `DispatchGroup`
+        // (≈ a Java `CountDownLatch`) counts both events; `notify` runs the closure once the count reaches zero.
+        let done = DispatchGroup()
+        done.enter()
+        done.enter()
+        var finished = false
+        // Prints the exit code and reloads the panels; runs once, on the main thread.
+        func finish(_ status: Int32) {
+            guard !finished else { return }
+            finished = true
+            if !consolePartial.isEmpty { consoleWrite("\n") }
+            if status != 0 { consoleWrite("[exit code \(status)]\n") }
+            running = nil
+            left.reload()
+            right.reload()
+            render()
+        }
         // Called on a background thread whenever output is available; empty data means end of file.
         pipe.fileHandleForReading.readabilityHandler = { [weak self] h in
             let d = h.availableData
-            if d.isEmpty { h.readabilityHandler = nil; return }
+            if d.isEmpty { h.readabilityHandler = nil; done.leave(); return }
             let s = String(decoding: d, as: UTF8.self)
             // UI state may only be touched on the main thread: `DispatchQueue.main.async` queues the closure there
             // (like `SwingUtilities.invokeLater`). `self?.` is optional chaining on the weak `self`.
             DispatchQueue.main.async { self?.consoleWrite(s); self?.render() }
         }
-        proc.terminationHandler = { [weak self] pr in
-            let status = pr.terminationStatus
-            // The short delay lets the readability handler deliver the last output before the summary is printed.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                guard let self else { return }
-                if !self.consolePartial.isEmpty { self.consoleWrite("\n") }
-                if status != 0 { self.consoleWrite("[exit code \(status)]\n") }
-                self.running = nil
-                self.left.reload()
-                self.right.reload()
-                self.render()
-            }
+        proc.terminationHandler = { pr in
+            done.leave()
+            // A background job (`cmd &`) can keep the output pipe open after the shell has exited; don't wait for it.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { finish(pr.terminationStatus) }
         }
+        // Queued on the main thread after the last output chunk, because that chunk was queued before `leave()`.
+        done.notify(queue: .main) { finish(proc.terminationStatus) }
         // `do { try ... } catch { ... }` is Java's try/catch; every throwing call must be marked with `try`.
         // Inside `catch` the exception is available as the implicit `error`.
         do {
