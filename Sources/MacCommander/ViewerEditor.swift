@@ -21,6 +21,8 @@ final class Viewer: Layer {
     let path: String
     /// The file contents (at most 64 MiB), memory-mapped so large files are not read into RAM up front.
     let data: Data
+    /// The real file size; larger than `data.count` when the file was cut at 64 MiB.
+    let fileSize: Int
     /// Text lines, built lazily; empty while only the hex view has been shown. `[String]` ≈ `List<String>`.
     var lines: [String] = []
     /// Hex dump mode instead of text.
@@ -53,6 +55,7 @@ final class Viewer: Layer {
         let d = (try? Data(contentsOf: URL(fileURLWithPath: path), options: .alwaysMapped)) ?? Data()
         // `prefix(limit)` is a view of the first bytes, still backed by the mapping.
         data = d.count > limit ? d.prefix(limit) : d
+        fileSize = d.count
         // Heuristic: a NUL byte in the first 8 KiB means binary, so start in hex mode.
         hex = data.prefix(8192).contains(0)
         if !hex { buildText() }
@@ -135,7 +138,9 @@ final class Viewer: Layer {
         top = max(0, min(top, max(0, total - pageH)))
         let pct = total <= pageH ? 100 : Int(Double(top + pageH) * 100 / Double(total))
         // `\(expr)` is string interpolation (≈ concatenation of `String.valueOf(expr)`).
-        let info = " Line \(top + 1)/\(total)  Col \(left)  \(groupNum(Int64(data.count))) bytes  \(pct)% "
+        // A cut-off file says so: "67.108.864 of 1.234.567.890 bytes".
+        let size = groupNum(Int64(data.count)) + (fileSize > data.count ? " of " + groupNum(Int64(fileSize)) : "")
+        let info = " Line \(top + 1)/\(total)  Col \(left)  \(size) bytes  \(pct)% "
         s.fill(0, 0, s.cols, 1, Col.black, Col.cyan)
         s.text(0, 0, fit(" View: " + shortPath(displayPath(path), max(1, s.cols - info.count - 9)), max(0, s.cols - info.count)), Col.black, Col.cyan)
         if info.count < s.cols { s.text(s.cols - info.count, 0, info, Col.black, Col.cyan) }

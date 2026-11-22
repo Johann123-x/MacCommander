@@ -28,6 +28,33 @@ final class ViewerTests {
         #expect(v.left == 0)
     }
 
+    /// The title row of `v` rendered on a wide screen.
+    private func titleRow(_ v: Viewer) -> String {
+        let s = Screen(cols: 140, rows: 25)
+        v.render(s)
+        return String((0..<s.cols).map { s[$0, 0].ch })
+    }
+
+    @Test func titleShowsTheSize() throws {
+        let size = try #require(FileManager.default.attributesOfItem(atPath: file)[.size] as? Int)
+        let title = titleRow(Viewer(cmd, path: file))
+        #expect(title.contains("  \(size) bytes  "))
+        #expect(!title.contains(" of "))
+    }
+
+    @Test func titleSaysWhenTheFileWasCutOff() throws {
+        // A sparse file: 65 MiB long but takes no disk space, as it is never written.
+        let big = file + ".bin"
+        #expect(FileManager.default.createFile(atPath: big, contents: nil))
+        defer { try? FileManager.default.removeItem(atPath: big) }
+        let h = try #require(FileHandle(forWritingAtPath: big))
+        try h.truncate(atOffset: 65 * 1024 * 1024)
+        try h.close()
+        let v = Viewer(cmd, path: big)
+        #expect(v.data.count == 64 * 1024 * 1024)
+        #expect(titleRow(v).contains("67.108.864 of 68.157.440 bytes"))
+    }
+
     @Test func rawTextScrollsSideways() {
         let v = Viewer(cmd, path: file)
         // F3 switches a Markdown file between formatted and raw view.
