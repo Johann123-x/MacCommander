@@ -439,13 +439,41 @@ final class Editor: Layer {
         modified = true
     }
 
+    // `throws` marks a method that can throw; unlike Java there is no list of exception types.
     /// Writes the text back to the file. Returns false and shows an error on failure.
+    /// Writes `s` so that a crash or a full disk never leaves a half-written file: the text goes to a temporary
+    /// file next to the original, which then replaces the original in one step. `replaceItemAt` keeps the
+    /// original's permissions and creation date. A symbolic link is followed, so the link stays a link.
+    private func write(_ s: String) throws {
+        let fm = FileManager.default
+        let url = URL(fileURLWithPath: path).resolvingSymlinksInPath()
+        guard fm.fileExists(atPath: url.path) else {
+            try s.write(to: url, atomically: true, encoding: .utf8)
+            return
+        }
+        let tmp = url.deletingLastPathComponent().appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString).tmp")
+        do {
+            try s.write(to: tmp, atomically: false, encoding: .utf8)
+        } catch {
+            // No temporary file possible (e.g. the folder is read-only but the file is writable): overwrite in place.
+            try s.write(to: url, atomically: false, encoding: .utf8)
+            return
+        }
+        do {
+            // `_ =` discards the returned URL of the resulting item.
+            _ = try fm.replaceItemAt(url, withItemAt: tmp)
+        } catch {
+            try? fm.removeItem(at: tmp)
+            throw error
+        }
+    }
+
     func save() -> Bool {
         var s = lines.map { String($0) }.joined(separator: "\n")
         if crlf { s = s.replacingOccurrences(of: "\n", with: "\r\n") }
         // `do { try ... } catch { ... }` ≈ try/catch; the caught error is available as the implicit `error` constant.
         do {
-            try s.write(toFile: path, atomically: false, encoding: .utf8)
+            try write(s)
             modified = false
             return true
         } catch {
