@@ -81,6 +81,17 @@ func mdInline(_ s: String, base: UInt8 = MD.text) -> [Cell] {
     }
     // Positions outside the text count as non-word characters.
     func isWordChar(_ k: Int) -> Bool { k >= 0 && k < c.count && (c[k].isLetter || c[k].isNumber) }
+    /// The index of the `cl` that closes an `op` opened just before `from`, counting nested pairs; backslash-escaped
+    /// characters are skipped. Nil if it is never closed.
+    func matching(_ op: Character, _ cl: Character, from: Int) -> Int? {
+        var depth = 1, k = from
+        while k < c.count {
+            if c[k] == "\\" { k += 2; continue }
+            if c[k] == op { depth += 1 } else if c[k] == cl { depth -= 1; if depth == 0 { return k } }
+            k += 1
+        }
+        return nil
+    }
 
     // Each rule below either consumes some characters and `continue`s, or falls through to the next rule.
     // Whatever no rule matches is emitted literally at the end of the loop body.
@@ -106,14 +117,14 @@ func mdInline(_ s: String, base: UInt8 = MD.text) -> [Cell] {
         }
         // Images and links
         // `[label](url)` shows only the label, in link colour; `![alt](url)` shows a placeholder with the alt text. The URL
-        // itself is never shown. Nested brackets or parentheses inside the label or URL are not supported.
+        // itself is never shown. Brackets in the label and parentheses in the URL may nest: `[a [b]](x_(y))`.
         if ch == "!" || ch == "[" {
             let isImg = ch == "!"
             let open = isImg ? i + 1 : i
-            // Every `let x = find(...)` clause must yield a non-nil value, otherwise the whole `if` is skipped; later clauses
-            // may use earlier bindings.
-            if open < c.count, c[open] == "[", let close = find(["]"], from: open + 1),
-               close + 1 < c.count, c[close + 1] == "(", let paren = find([")"], from: close + 2) {
+            // Every `let x = matching(...)` clause must yield a non-nil value, otherwise the whole `if` is skipped; later
+            // clauses may use earlier bindings.
+            if open < c.count, c[open] == "[", let close = matching("[", "]", from: open + 1),
+               close + 1 < c.count, c[close + 1] == "(", let paren = matching("(", ")", from: close + 2) {
                 let label = String(c[(open + 1)..<close])
                 if isImg {
                     out += cells("[Image: " + (label.isEmpty ? "–" : label) + "]", Col.cyan)
@@ -171,8 +182,12 @@ private func wrapCells(_ line: [Cell], width: Int, first: [Cell] = [], rest: [Ce
     // Returns one cell array per output line (`[[Cell]]` = list of lists). `first` prefixes the first line (e.g. a
     // list bullet), `rest` every further line (e.g. matching indentation).
     var out: [[Cell]] = []
+    let limit = max(1, width)
+    // Keep at least a third of the width for text, so deep nesting cannot push the text off the line.
+    // Redeclaring `first`/`rest` with `let` shadows the parameters, which are constants and cannot be changed.
+    let maxPrefix = max(0, limit - max(1, limit / 3))
+    let first = Array(first.prefix(maxPrefix)), rest = Array(rest.prefix(maxPrefix))
     var cur = first
-    var limit = max(1, width)
     var words: [[Cell]] = []
     var w: [Cell] = []
     // Split into words at spaces; runs of spaces collapse into one.
@@ -195,16 +210,13 @@ private func wrapCells(_ line: [Cell], width: Int, first: [Cell] = [], rest: [Ce
         }
         // The word does not fit: finish the current line and continue on a new one.
         if hasWord { out.append(cur); cur = rest; hasWord = false }
-        // Words longer than a whole line get broken hard
-        while cur.count + word.count > limit, limit - cur.count > 0 {
+        // Words longer than a whole line get broken hard. The capped prefix guarantees room for at least one character.
+        while cur.count + word.count > limit {
             let take = limit - cur.count
             cur += word.prefix(take)
             word.removeFirst(take)
             out.append(cur); cur = rest
         }
-        // Safety net: if the prefix alone fills the width, raise the limit so at least one more character fits.
-        // Note that the raised limit then applies to all following lines as well.
-        if limit - cur.count <= 0 { limit = cur.count + 1 }
         cur += word; hasWord = true
     }
     out.append(cur)
@@ -508,7 +520,8 @@ func renderMarkdown(_ text: String, width: Int) -> [MDLine] {
         // Collects lines until an empty line or the start of another block. A line followed by a setext underline also
         // ends the paragraph, so it becomes a heading in the next iteration.
         let start = i
-        var para: [Cell] = []
+        // The paragraph's text, joined with spaces and formatted as a whole, so bold or italic may span source lines.
+        var para = ""
         while i < src.count {
             let r = src[i]
             let t = r.trimmingCharacters(in: .whitespaces)
@@ -522,15 +535,15 @@ func renderMarkdown(_ text: String, width: Int) -> [MDLine] {
             // A hard break flushes the text collected so far as its own wrapped block.
             let hard = r.hasSuffix("  ") || t.hasSuffix("\\")
             let body = t.hasSuffix("\\") ? String(t.dropLast()) : t
-            if !para.isEmpty { para += cells(" ", MD.text) }
-            para += mdInline(body)
+            if !para.isEmpty { para += " " }
+            para += body
             i += 1
             if hard {
-                for row in wrapCells(para, width: W) { add(row, start) }
-                para = []
+                for row in wrapCells(mdInline(para), width: W) { add(row, start) }
+                para = ""
             }
         }
-        if !para.isEmpty { for row in wrapCells(para, width: W) { add(row, start) } }
+        if !para.isEmpty { for row in wrapCells(mdInline(para), width: W) { add(row, start) } }
         // Separator after the paragraph, tagged with its last source line.
         add([], max(start, i - 1))
     }

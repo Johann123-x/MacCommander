@@ -52,6 +52,14 @@ struct MarkdownInlineTests {
         #expect(text(mdInline("a <b> c")) == "a <b> c")
     }
 
+    @Test func linksWithNestedBracketsAndParentheses() {
+        #expect(text(mdInline("[a [b] c](u)")) == "a [b] c")
+        #expect(text(mdInline("[wiki](https://x.org/F_(bar)) end")) == "wiki end")
+        #expect(text(mdInline("[a\\]b](u)")) == "a]b")
+        // Unclosed: stays literal.
+        #expect(text(mdInline("[a](b")) == "[a](b")
+    }
+
     @Test func imagesShowAPlaceholder() {
         #expect(text(mdInline("![logo](img/logo.png)")) == "[Image: logo]")
         #expect(text(mdInline("![](img/logo.png)")) == "[Image: –]")
@@ -88,6 +96,26 @@ struct MarkdownBlockTests {
     @Test func paragraphsJoinLinesAndWrap() {
         #expect(render("one two three\nfour five six") == ["one two three four", "five six"])
         #expect(render("first\n\nsecond") == ["first", "", "second"])
+    }
+
+    @Test func emphasisSpansSourceLinesOfAParagraph() throws {
+        let line = try #require(renderMarkdown("one **two\nthree** four", width: 40).first)
+        #expect(String(line.cells.map(\.ch)) == "one two three four")
+        let colour = { (ch: Character) in line.cells.first { $0.ch == ch }?.fg }
+        #expect(colour("w") == Col.white)
+        #expect(colour("h") == Col.white)
+        #expect(colour("f") == Col.lcyan)
+    }
+
+    @Test func deepNestingNeverExceedsTheWidth() {
+        let list = (0..<15).map { String(repeating: "  ", count: $0) + "- item number \($0)" }.joined(separator: "\n")
+        let quote = String(repeating: ">", count: 15) + " some quoted words that need wrapping"
+        for md in [list, quote] {
+            let lines = render(md)
+            #expect(lines.allSatisfy { $0.count <= 20 }, "\(lines)")
+            // The text itself is still there, not pushed off the line.
+            #expect(lines.joined().contains("item") || lines.joined().contains("quoted"))
+        }
     }
 
     @Test func hardLineBreaks() {
