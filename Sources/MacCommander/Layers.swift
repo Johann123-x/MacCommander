@@ -349,7 +349,8 @@ final class ProgressBox: Layer {
     }
 
     func render(_ s: Screen) {
-        let w = min(s.cols - 6, 60), h = 8
+        // With a progress bar the box is one row taller, so the cancel hint fits below the bar.
+        let w = min(s.cols - 6, 60), h = fraction >= 0 ? 9 : 8
         let x = (s.cols - w) / 2, y = (s.rows - h) / 2 - 1
         s.fill(x, y, w, h, Col.black, Col.gray)
         s.shadow(x, y, w, h)
@@ -364,9 +365,9 @@ final class ProgressBox: Layer {
             // `Int(...)`/`Double(...)` are explicit conversions; Swift never converts between number types implicitly.
             let filled = Int(Double(bw) * min(1, fraction))
             s.text(x + 4, y + 5, String(repeating: "█", count: filled) + String(repeating: "░", count: bw - filled), Col.cyan, Col.gray)
-        } else {
-            s.text(x + 4, y + 5, fit(cancelled ? "Cancelling…" : "Esc to cancel", w - 8, .center), Col.dgray, Col.gray)
         }
+        let hint = fit(cancelled ? "Cancelling…" : "Esc to cancel", w - 8, .center)
+        s.text(x + 4, fraction >= 0 ? y + 6 : y + 5, hint, Col.dgray, Col.gray)
         s.cursor = nil
     }
 
