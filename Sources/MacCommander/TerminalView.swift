@@ -79,6 +79,7 @@ final class TerminalView: NSView {
     private var yOff: CGFloat = 0
     private var attrCache: [UInt8: [NSAttributedString.Key: Any]] = [:]
     private var scrollAcc: CGFloat = 0
+    private var lastHover = (-1, -1)
     var blinkOn = true
 
     init(fontSize: CGFloat) {
@@ -244,6 +245,20 @@ final class TerminalView: NSView {
     override func mouseDown(with e: NSEvent) {
         let (x, y) = cellAt(e)
         commander?.mouse(x: x, y: y, right: false, clicks: e.clickCount)
+    }
+
+    override func mouseMoved(with e: NSEvent) {
+        let (x, y) = cellAt(e)
+        guard x != lastHover.0 || y != lastHover.1 else { return }
+        lastHover = (x, y)
+        commander?.hover(x: x, y: y)
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseMoved, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self, userInfo: nil))
     }
 
     override func rightMouseDown(with e: NSEvent) {

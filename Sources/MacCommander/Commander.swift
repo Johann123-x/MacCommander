@@ -250,7 +250,11 @@ final class Commander {
     // MARK: - Mouse
 
     func mouse(x: Int, y: Int, right isRight: Bool, clicks: Int) {
-        guard layers.isEmpty else { return }
+        if let l = layers.last {
+            l.mouse(x: x, y: y, right: isRight, clicks: clicks)
+            render()
+            return
+        }
         let R = screen.rows
         if y == R - 1 {
             let slot = min(9, x / max(1, screen.cols / 10))
@@ -268,9 +272,15 @@ final class Commander {
         render()
     }
 
+    func hover(x: Int, y: Int) {
+        guard let l = layers.last, !l.fullScreen else { return }
+        l.hover(x: x, y: y)
+        render()
+    }
+
     func scroll(x: Int, y: Int, delta: Int) {
         if let l = layers.last {
-            if l.fullScreen { l.handle(KeyEvent(key: delta < 0 ? .up : .down)); render() }
+            if l.fullScreen || l is ListPopup || l is TextBox { l.handle(KeyEvent(key: delta < 0 ? .up : .down)); render() }
             return
         }
         guard panelsOn else { return }

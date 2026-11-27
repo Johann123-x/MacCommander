@@ -76,7 +76,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 exit(0)
             }
             let k = keys[i]
-            if !k.hasPrefix("sleep"), let e = parseKey(k) { self.commander.handle(e) }
+            let parts = k.split(separator: ":").compactMap { Int($0) }
+            if (k.hasPrefix("click:") || k.hasPrefix("hover:")), parts.count == 2 {
+                if k.hasPrefix("click:") { self.commander.mouse(x: parts[0], y: parts[1], right: false, clicks: 1) }
+                else { self.commander.hover(x: parts[0], y: parts[1]) }
+            } else if !k.hasPrefix("sleep"), let e = parseKey(k) { self.commander.handle(e) }
             DispatchQueue.main.asyncAfter(deadline: .now() + (k.hasPrefix("sleep") ? 1.5 : 0.05)) { step(i + 1) }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { step(0) }

@@ -46,3 +46,9 @@ Bei `.md`-Dateien schaltet **F3** im Viewer und im Editor zwischen Rohtext und f
 
 - **Hidden files**: versteckte Dateien nur für dieses Panel ein/aus (Ctrl-H = aktives Panel)
 - **Permissions**: zusätzliche Spalte „Attr“ mit Unix-Rechten (z. B. `drwxr-xr-x`), nur in der Vollanzeige
+
+### Maus in Menüs und Dialogen
+
+- F9-Menü: Klick auf einen Titel wechselt das Menü, Klick auf einen Eintrag führt ihn aus, Klick daneben schließt; der Mauszeiger hebt Einträge hervor
+- Auswahllisten (Alt-F1/F2, Historie …): Klick wählt, Mausrad scrollt
+- Dialoge: Knöpfe anklicken, Klick ins Eingabefeld setzt den Fokus

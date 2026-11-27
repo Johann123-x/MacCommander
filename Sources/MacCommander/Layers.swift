@@ -5,6 +5,15 @@ protocol Layer: AnyObject {
     var fullScreen: Bool { get }
     func render(_ s: Screen)
     func handle(_ e: KeyEvent)
+    /// Mouse click in screen cells (only the topmost layer receives it).
+    func mouse(x: Int, y: Int, right: Bool, clicks: Int)
+    /// Mouse moved (no button) – used for hover highlighting in menus.
+    func hover(x: Int, y: Int)
+}
+
+extension Layer {
+    func mouse(x: Int, y: Int, right: Bool, clicks: Int) {}
+    func hover(x: Int, y: Int) {}
 }
 
 // MARK: - Single line input
@@ -66,7 +75,18 @@ final class Dialog: Layer {
     let danger: Bool
     var focus: Int
     let completion: (Int, String) -> Void
+    private var buttonRects: [(x: Int, y: Int, w: Int)] = []
+    private var inputRow: (x: Int, y: Int, w: Int)?
     var fullScreen: Bool { false }
+
+    func mouse(x: Int, y: Int, right: Bool, clicks: Int) {
+        if let i = buttonRects.firstIndex(where: { y == $0.y && x >= $0.x && x < $0.x + $0.w }) {
+            focus = i
+            finish(i)
+        } else if let r = inputRow, y == r.y, x >= r.x, x < r.x + r.w {
+            focus = -1
+        }
+    }
 
     init(_ cmd: Commander, title: String, lines: [String], input: String? = nil, buttons: [String],
          danger: Bool = false, completion: @escaping (Int, String) -> Void = { _, _ in }) {
@@ -100,15 +120,19 @@ final class Dialog: Layer {
             s.text(x + 4, yy, fit(l, inner, input == nil ? .center : .left), fg, bg)
             yy += 1
         }
+        inputRow = nil
         if let inp = input {
+            inputRow = (x + 4, yy, inner)
             let cx = inp.render(s, x: x + 4, y: yy, w: inner, fg: Col.black, bg: Col.cyan)
             if focus == -1 { s.cursor = (cx, yy) }
             yy += 1
         }
         yy += 1
         var bx = x + (w - btnW) / 2
+        buttonRects = []
         for (i, b) in buttons.enumerated() {
             let label = "[ \(b) ]"
+            buttonRects.append((bx, yy, label.count))
             let on = i == focus
             s.text(bx, yy, label, on ? Col.black : fg, on ? Col.cyan : bg)
             bx += label.count + 1
@@ -152,7 +176,28 @@ final class ListPopup: Layer {
     var top = 0
     var centerX: Int?
     let onSelect: (Int) -> Void
+    private var frame = (x: 0, y: 0, w: 0, vis: 0)
     var fullScreen: Bool { false }
+
+    private func row(atX x: Int, y: Int) -> Int? {
+        let r = y - frame.y - 1
+        guard x > frame.x, x < frame.x + frame.w - 1, r >= 0, r < frame.vis, top + r < items.count else { return nil }
+        return top + r
+    }
+
+    func mouse(x: Int, y: Int, right: Bool, clicks: Int) {
+        if let i = row(atX: x, y: y) {
+            sel = i
+            cmd.pop(self)
+            onSelect(i)
+        } else if x < frame.x || x >= frame.x + frame.w || y < frame.y || y > frame.y + frame.vis + 1 {
+            cmd.pop(self) // click outside closes
+        }
+    }
+
+    func hover(x: Int, y: Int) {
+        if let i = row(atX: x, y: y) { sel = i }
+    }
 
     init(_ cmd: Commander, title: String, items: [String], onSelect: @escaping (Int) -> Void) {
         self.cmd = cmd
@@ -170,6 +215,7 @@ final class ListPopup: Layer {
         let y = max(1, (s.rows - 2 - h) / 2)
         if sel < top { top = sel }
         if sel >= top + vis { top = sel - vis + 1 }
+        frame = (x, y, w, vis)
         s.fill(x, y, w, h, Col.black, Col.cyan)
         s.shadow(x, y, w, h)
         s.box(x, y, w, h, Col.black, Col.cyan)
@@ -355,7 +401,37 @@ final class PulldownMenu: Layer {
     let menus: [(String, [MenuItem])]
     var cur: Int
     var sel = 0
+    private var bar: [(x: Int, w: Int)] = []
+    private var box = (x: 0, y: 0, w: 0, h: 0)
     var fullScreen: Bool { false }
+
+    private func item(atX x: Int, y: Int) -> Int? {
+        let i = y - box.y - 1
+        guard x > box.x, x < box.x + box.w - 1, i >= 0, i < items.count, !items[i].isSep else { return nil }
+        return i
+    }
+
+    func mouse(x: Int, y: Int, right: Bool, clicks: Int) {
+        if y == 0 {
+            if let i = bar.firstIndex(where: { x >= $0.x && x < $0.x + $0.w }) {
+                if i == cur { cmd.pop(self) } else { cur = i; sel = firstSelectable() }
+            } else {
+                cmd.pop(self)
+            }
+        } else if let i = item(atX: x, y: y) {
+            activate(i)
+        } else if !(x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h) {
+            cmd.pop(self) // click outside the menu closes it
+        }
+    }
+
+    func hover(x: Int, y: Int) {
+        if y == 0, let i = bar.firstIndex(where: { x >= $0.x && x < $0.x + $0.w }), i != cur {
+            cur = i; sel = firstSelectable()
+        } else if let i = item(atX: x, y: y) {
+            sel = i
+        }
+    }
 
     init(_ cmd: Commander, menus: [(String, [MenuItem])], cur: Int) {
         self.cmd = cmd
@@ -371,15 +447,18 @@ final class PulldownMenu: Layer {
         s.fill(0, 0, s.cols, 1, Col.black, Col.cyan)
         var x = 2
         var xs: [Int] = []
+        bar = []
         for (i, m) in menus.enumerated() {
             let lbl = " \(m.0) "
             xs.append(x)
+            bar.append((x, lbl.count))
             s.text(x, 0, lbl, i == cur ? Col.white : Col.black, i == cur ? Col.black : Col.cyan)
             x += lbl.count + 3
         }
         let w = (items.map { $0.title.count + ($0.hint.isEmpty ? 0 : $0.hint.count + 3) }.max() ?? 10) + 6
         let h = items.count + 2
         let bx = max(0, min(s.cols - w - 2, xs[cur] - 1)), by = 1
+        box = (bx, by, w, h)
         s.fill(bx, by, w, h, Col.black, Col.cyan)
         s.shadow(bx, by, w, h)
         s.box(bx, by, w, h, Col.black, Col.cyan)
